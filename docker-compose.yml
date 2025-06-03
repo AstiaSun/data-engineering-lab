@@ -1,0 +1,27 @@
+services:
+  mysql-db:
+    image: mysql:9.3.0
+    restart: always
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ./data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    expose:
+      - "3306"
+
+  data-loader:
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_HOST=mysql-db
+      - DATASET_PATH=${DATASET_PATH}
+    build:
+      context: .
+      dockerfile: ./hw1/Dockerfile
+    volumes:
+      - ./ad-events-dataset:/data-engineering-lab/ad-events-dataset:ro
