@@ -1,5 +1,4 @@
 import csv
-import os
 import re
 import uuid
 from datetime import datetime
@@ -9,16 +8,8 @@ from typing import Generator
 from sqlalchemy import create_engine, Engine, select
 from sqlalchemy.orm import Session
 
+from constants import SQLALCHEMY_DB_URL, DATASET_PATH
 from hw1.models import Base, Campaign, AdEvent, UserInterests, User
-
-MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
-MYSQL_ROOT_PASSWORD = os.environ.get("MYSQL_ROOT_PASSWORD")
-MYSQL_HOST = os.environ.get("MYSQL_HOST")
-
-SQLALCHEMY_DB_URL = (
-    f"mysql+pymysql://root:{MYSQL_ROOT_PASSWORD}@{MYSQL_HOST}:3306/{MYSQL_DATABASE}"
-)
-DATASET_PATH = Path(os.environ.get("DATASET_PATH"))
 
 
 def stream_campaigns(source_path: Path) -> Generator[Campaign, None, None]:
