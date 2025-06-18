@@ -67,7 +67,7 @@ class Campaign(Base):
     TargetInterest: Mapped[str] = mapped_column(String(15), nullable=False)
     TargetLocation: Mapped[str] = mapped_column(String(50), nullable=False)
 
-    # AdEvents: Mapped[list["AdEvent"]] = relationship(back_populates="campaign")
+    AdEvents: Mapped[list["AdEvent"]] = relationship(back_populates="campaign")
 
 
 class AdEvent(Base):
@@ -76,6 +76,9 @@ class AdEvent(Base):
     EventID: Mapped[uuid.UUID] = mapped_column(Uuid(as_uuid=True), primary_key=True)
 
     UserID: Mapped[int] = mapped_column(ForeignKey("Users.UserID"), nullable=False)
+    CampaignID: Mapped[str] = mapped_column(
+        ForeignKey("Campaigns.CampaignID"), nullable=False
+    )
     Timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     Device: Mapped[str] = mapped_column(String(10), nullable=False)
     BidAmount: Mapped[float] = mapped_column(Float, nullable=False)
@@ -83,8 +86,6 @@ class AdEvent(Base):
     WasClicked: Mapped[bool] = mapped_column(Boolean, nullable=False)
     ClickTimestamp: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     AdRevenue: Mapped[float] = mapped_column(Float, nullable=False)
-    # will be dropped
-    CampaignName: Mapped[str] = mapped_column(String(30), nullable=False)
-    AdvertiserName: Mapped[str] = mapped_column(String(50), nullable=False)
 
     user: Mapped[User] = relationship(back_populates="AdEvents")
+    campaign: Mapped[Campaign] = relationship(back_populates="AdEvents")

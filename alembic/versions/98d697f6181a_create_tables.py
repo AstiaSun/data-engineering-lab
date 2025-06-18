@@ -1,10 +1,11 @@
 """create tables
 
 Revision ID: 98d697f6181a
-Revises: 
+Revises:
 Create Date: 2025-06-11 00:22:40.533948
 
 """
+
 from enum import Enum
 from typing import Sequence, Union
 
@@ -13,7 +14,7 @@ import sqlalchemy as sa
 from sqlalchemy import Inspector
 
 # revision identifiers, used by Alembic.
-revision: str = '98d697f6181a'
+revision: str = "98d697f6181a"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -40,15 +41,19 @@ def upgrade() -> None:
     op.create_table(
         "UsersInterests",
         sa.Column(
-            "UserID", sa.BigInteger, sa.ForeignKey("Users.UserID", ondelete="CASCADE")
+            "UserID",
+            sa.BigInteger,
+            sa.ForeignKey("Users.UserID", ondelete="CASCADE"),
+            primary_key=True,
+            nullable=False,
         ),
-        sa.Column("Interest", sa.String(20), nullable=False)
+        sa.Column("Interest", sa.String(20), primary_key=True, nullable=False),
     )
     op.create_table(
         "Campaigns",
         sa.Column("CampaignID", sa.BigInteger, primary_key=True),
-        sa.Column("AdvertiserName", sa.String(50), nullable=False),
         sa.Column("CampaignName", sa.String(30), nullable=False),
+        sa.Column("AdvertiserName", sa.String(50), nullable=False),
         sa.Column("CampaignStartDate", sa.Date, nullable=False),
         sa.Column("CampaignEndDate", sa.Date, nullable=False),
         sa.Column("AdSlotSize", sa.String(11), nullable=False),
@@ -63,7 +68,14 @@ def upgrade() -> None:
     op.create_table(
         "AdEvents",
         sa.Column("EventID", sa.Uuid(as_uuid=True), primary_key=True),
-        sa.Column("UserID", sa.BigInteger, sa.ForeignKey("Users.UserID", ondelete="CASCADE")),
+        sa.Column(
+            "UserID", sa.BigInteger, sa.ForeignKey("Users.UserID", ondelete="CASCADE")
+        ),
+        sa.Column(
+            "CampaignID",
+            sa.BigInteger,
+            sa.ForeignKey("Campaigns.CampaignID", ondelete="CASCADE"),
+        ),
         sa.Column("Timestamp", sa.DateTime, nullable=False),
         sa.Column("Device", sa.String(20), nullable=False),
         sa.Column("BidAmount", sa.Float, nullable=False),
@@ -71,8 +83,6 @@ def upgrade() -> None:
         sa.Column("WasClicked", sa.Boolean, nullable=False),
         sa.Column("ClickTimestamp", sa.DateTime, nullable=True),
         sa.Column("AdRevenue", sa.Float, nullable=False),
-        sa.Column("CampaignName", sa.String(30), nullable=False),
-        sa.Column("AdvertiserName", sa.String(50), nullable=False),
     )
 
 
@@ -80,6 +90,5 @@ def downgrade() -> None:
     """Downgrade schema."""
     op.drop_table("UsersInterests")
     op.drop_table("Users")
-
     op.drop_table("Campaigns")
     op.drop_table("AdEvents")
