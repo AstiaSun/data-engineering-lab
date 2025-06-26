@@ -3,13 +3,19 @@ import re
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Generator
+from typing import Generator, Type
 
-from sqlalchemy import create_engine, Engine, select
-from sqlalchemy.orm import Session
 
-from constants import SQLALCHEMY_DB_URL, DATASET_PATH
+from constants import DATASET_PATH
+from hw1.db import DBSession
 from hw1.models import Base, Campaign, AdEvent, UserInterests, User
+
+CSV_NESTED_SEPARATOR = ";"
+CSV_SEPARATOR = ","
+
+
+def report_done(model: Type[Base]):
+    print(f"{model.__tablename__}: done")
 
 
 def stream_campaigns(source_path: Path) -> Generator[Campaign, None, None]:
@@ -33,6 +39,7 @@ def stream_campaigns(source_path: Path) -> Generator[Campaign, None, None]:
                 TargetLocation=target_country,
                 **dict(zip(header, line)),
             )
+    report_done(Campaign)
 
 
 def to_bool(s: str) -> bool:
@@ -43,16 +50,11 @@ def to_timestamp(s: str) -> datetime | None:
     return datetime.fromisoformat(s) if s else None
 
 
-def stream_ad_events(
-    engine: Engine, source_path: Path
-) -> Generator[AdEvent, None, None]:
+def stream_ad_events(source_path: Path):
     with open(source_path) as csv_file:
-        stream_reader = csv.reader(csv_file)
-        header = next(stream_reader)
+        header = csv_file.readline().strip().split(CSV_SEPARATOR)
         filtered_columns_transformers = {
             "EventID": uuid.UUID,
-            "UserID": None,
-            "Device": None,
             "Timestamp": datetime.fromisoformat,
             "BidAmount": float,
             "AdCost": float,
@@ -60,34 +62,35 @@ def stream_ad_events(
             "ClickTimestamp": to_timestamp,
             "AdRevenue": float,
         }
-        filtered_columns = list(filtered_columns_transformers.keys())
-        ad_event_headers = [*filtered_columns, "CampaignID"]
-        filtered_columns_idx = [header.index(column) for column in filtered_columns]
-        campaign_columns = [
-            "AdvertiserName",
+        ad_event_header = [
+            "EventID",
+            "UserID",
+            "Device",
+            "Timestamp",
+            "BidAmount",
+            "AdCost",
+            "WasClicked",
+            "ClickTimestamp",
+            "AdRevenue",
             "CampaignName",
-            "CampaignStartDate",
-            "CampaignEndDate",
         ]
-        campaign_headers_idx = [header.index(column) for column in campaign_columns]
-        for line in stream_reader:
-            campaign_id_query = (
-                select(Campaign.CampaignID)
-                .where(Campaign.CampaignName == line[campaign_headers_idx[1]])
-                .where(Campaign.AdvertiserName == line[campaign_headers_idx[0]])
+        filtered_columns_idx = [header.index(column) for column in ad_event_header]
+        ad_event_header[-1] = "CampaignID"
+        while raw_line := csv_file.readline():
+            line = (
+                raw_line.replace("|", CSV_NESTED_SEPARATOR).strip().split(CSV_SEPARATOR)
             )
-            with engine.connect() as connection:
-                (campaign_id,) = connection.execute(campaign_id_query).first()
             ad_event_values = [line[idx] for idx in filtered_columns_idx]
-            ad_event_values.append(campaign_id)
-            params = dict(zip(ad_event_headers, ad_event_values))
+            ad_event_values[-1] = ad_event_values[-1].removeprefix("Campaign_")
+            params = dict(zip(ad_event_header, ad_event_values))
             for column, transformer in filtered_columns_transformers.items():
-                if transformer:
-                    params[column] = transformer(params[column])
+                params[column] = transformer(params[column])
             yield AdEvent(**params)
+    report_done(AdEvent)
 
 
 def stream_users(source_path: Path) -> Generator[User | UserInterests, None, None]:
+    user_interests = []
     with open(source_path) as csv_file:
         stream_reader = csv.reader(csv_file)
         header = next(stream_reader)
@@ -100,43 +103,44 @@ def stream_users(source_path: Path) -> Generator[User | UserInterests, None, Non
             line.pop(dropped_field_idx)
             yield User(**dict(zip(header, line)))
             for interest in interests.split(","):
-                yield UserInterests(UserID=line[0], Interest=interest)
+                user_interests.append(UserInterests(UserID=line[0], Interest=interest))
+
+    for user_interest in user_interests:
+        yield user_interest
+    report_done(User)
 
 
 def db_insert_from_stream(
-    engine: Engine, data_stream: Generator[Base, None, None], batch_size: int = 1000
+    db: DBSession, data_stream: Generator[Base, None, None], batch_size: int = 1000
 ):
-    with Session(engine) as session:
-        current_size = 0
-        batch: list[Base | None] = [None] * batch_size
-        for model in data_stream:
-            batch[current_size] = model
-            current_size += 1
+    total_records_number = 0
+    current_size = 0
+    batch: list[Base | None] = [None] * batch_size
 
-            if current_size >= batch_size:
-                session.add_all(batch)
-                session.commit()
-                current_size = 0
+    for model in data_stream:
+        batch[current_size] = model
+        current_size += 1
+        total_records_number += 1
 
-        if current_size > 0:
-            session.add_all(batch[:current_size])
-            session.commit()
+        if current_size >= batch_size:
+            db.insert_batch(batch=batch)
+            current_size = 0
+            if total_records_number % 100000 == 0:
+                print(f"{model.__tablename__}: uploaded {total_records_number} records")
+
+    if current_size > 0:
+        db.insert_batch(batch[:current_size])
 
 
-def upload_dataset(engine: Engine):
-    db_insert_from_stream(engine, stream_campaigns(DATASET_PATH / "campaigns.csv"))
-    db_insert_from_stream(engine, stream_users(DATASET_PATH / "users.csv"))
-    db_insert_from_stream(
-        engine, stream_ad_events(engine, DATASET_PATH / "ad_events.csv")
-    )
+def upload_dataset(db_session: DBSession):
+    db_insert_from_stream(db_session, stream_campaigns(DATASET_PATH / "campaigns.csv"))
+    db_insert_from_stream(db_session, stream_users(DATASET_PATH / "users.csv"))
+    db_insert_from_stream(db_session, stream_ad_events(DATASET_PATH / "ad_events.csv"))
 
 
 def main():
-    engine = create_engine(SQLALCHEMY_DB_URL, echo=True)
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
-
-    upload_dataset(engine)
+    with DBSession() as db_session:
+        upload_dataset(db_session)
 
 
 if __name__ == "__main__":

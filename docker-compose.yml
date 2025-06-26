@@ -19,9 +19,12 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_HOST=mysql-db
-      - DATASET_PATH=${DATASET_PATH}
+      - DATASET_PATH=/data-engineering-lab/ad-events-dataset
     build:
       context: .
       dockerfile: ./hw1/Dockerfile
+    command: bash -c "pipenv run alembic upgrade head && pipenv run python -m hw1.data_loader"
     volumes:
       - ./ad-events-dataset:/data-engineering-lab/ad-events-dataset:ro
+    depends_on:
+      - mysql-db
