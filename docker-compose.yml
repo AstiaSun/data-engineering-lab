@@ -38,10 +38,8 @@ services:
       - MYSQL_USER=${MYSQL_USER}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-    #    command: bash -c "mysql -u root --password=${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} < /tmp/adevents.sql"
     volumes:
       - ./hw2/db:/var/lib/mysql
-      - ./hw2/adevents.sql:/adevents.sql
     ports:
       - "3306:3306"
     expose:
@@ -60,7 +58,6 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD}
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
     entrypoint: bash -c 'mysql -h db-monthly -u root --password=${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} < /adevents.sql'
-    #    command: bash -c "mysql -u root --password=${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} < /tmp/adevents.sql"
     volumes:
       - ./hw2/adevents.sql:/adevents.sql
     depends_on:
