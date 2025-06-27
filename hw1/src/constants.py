@@ -1,0 +1,14 @@
+import os
+
+DATASET_PATH = os.environ.get("DATASET_PATH")
+
+MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
+MYSQL_ROOT_PASSWORD = os.environ.get("MYSQL_ROOT_PASSWORD")
+MYSQL_HOST = os.environ.get("MYSQL_HOST")
+MYSQL_PORT = os.environ.get("MYSQL_PORT", "3306")
+SQLALCHEMY_DB_URL: str | None = None
+
+if MYSQL_ROOT_PASSWORD and MYSQL_HOST and MYSQL_DATABASE:
+    SQLALCHEMY_DB_URL = (
+        f"mysql+pymysql://root:{MYSQL_ROOT_PASSWORD}@{MYSQL_HOST}:{MYSQL_PORT}/{MYSQL_DATABASE}"
+    )
