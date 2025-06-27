@@ -23,8 +23,57 @@ services:
     build:
       context: .
       dockerfile: ./hw1/Dockerfile
-    command: bash -c "pipenv run alembic upgrade head && pipenv run python -m hw1.data_loader"
+    command: bash -c "pipenv run alembic upgrade head && pipenv run python -m hw1.src.data_loader"
     volumes:
       - ./ad-events-dataset:/data-engineering-lab/ad-events-dataset:ro
     depends_on:
       - mysql-db
+
+
+  db-monthly:
+    restart: no
+    image: mysql:9.3.0
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ./hw2/db:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    expose:
+      - "3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
+
+  db-monthly-dump-loader:
+    restart: no
+    image: mysql:9.3.0
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    entrypoint: bash -c 'mysql -h db-monthly -u root --password=${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} < /adevents.sql'
+    volumes:
+      - ./hw2/adevents.sql:/adevents.sql
+    depends_on:
+      db-monthly:
+        condition: service_healthy
+
+
+  query-executor:
+    environment:
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+      - MYSQL_HOST=db-monthly
+    build:
+      context: .
+      dockerfile: ./hw2/Dockerfile
+    command: bash -c "pipenv run python -m hw2.src.queries"
+    depends_on:
+      db-monthly:
+          condition: service_healthy
