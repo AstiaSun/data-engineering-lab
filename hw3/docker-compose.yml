@@ -1,0 +1,28 @@
+ services:
+  mongodb:
+    env_file: ".env"
+    image: mongo:8.0
+    restart: always
+    volumes:
+      - ./data:/data/db
+    ports:
+      - "27017:27017"
+    expose:
+      - "27017"
+    healthcheck:
+      test: [ "CMD","mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  pipeline:
+    env_file: ".env"
+    build:
+      context: .
+    volumes:
+      - ./dataset:/data-engineering-lab-hw3/dataset:ro
+    command: bash -c "poetry run python -m src.hw3.run"
+    depends_on:
+      mongodb:
+        condition: service_healthy

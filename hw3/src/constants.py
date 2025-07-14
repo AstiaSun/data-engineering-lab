@@ -1,0 +1,12 @@
+import os
+
+DATASET_PATH = "./dataset"
+DATABASE_NAME = "AdEvents"
+CHUNK_SIZE = 10000
+
+MONGODB_USERNAME = os.environ.get("MONGO_INITDB_ROOT_USERNAME")
+MONGODB_PASSWORD = os.environ.get("MONGO_INITDB_ROOT_PASSWORD")
+
+MONGODB_URI = (
+    f"mongodb://{MONGODB_USERNAME}:{MONGODB_PASSWORD}@localhost:27017/?authSource=admin"
+)
