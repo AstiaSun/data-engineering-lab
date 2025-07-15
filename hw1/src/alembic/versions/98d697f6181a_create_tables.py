@@ -50,7 +50,7 @@ def upgrade() -> None:
         sa.Column("Interest", sa.String(20), primary_key=True, nullable=False),
     )
     op.create_table(
-        "1",
+        "Campaigns",
         sa.Column("CampaignID", sa.BigInteger, primary_key=True),
         sa.Column("CampaignName", sa.String(30), nullable=False),
         sa.Column("AdvertiserName", sa.String(50), nullable=False),
