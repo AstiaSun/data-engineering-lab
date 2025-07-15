@@ -1,4 +1,15 @@
-### 1. DDL scripts
+### Instructions:
+
+1. Copy CSV files to dataset folder: `hw1/dataset`
+2. Open terminal and change your current directory to `hw1`
+3. Create `.env` file from `.env.template` and specify all env variables 
+4. Run bash script:
+    ```commandline
+    $ chmod +x run.sh && ./run.sh
+    ```
+
+### Results
+#### 1. DDL scripts
 **Users** table was normalised and redundant fields were removed:
 ```commandline
 data-loader-1  | 2025-06-03 21:40:16,071 INFO sqlalchemy.engine.Engine 
@@ -66,6 +77,6 @@ data-loader-1  | )
 
 ```
 
-### 2. Screenshots of data in DB
+#### 2. Screenshots of data in DB
 
 Screenshots can be found [here](./screenshots)
