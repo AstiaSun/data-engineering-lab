@@ -3,8 +3,8 @@ from typing import Self, Any
 from sqlalchemy import create_engine, Connection, Engine, text
 from sqlalchemy.orm import Session
 
-from constants import SQLALCHEMY_DB_URL
-from hw1.src.models import Base
+from .constants import SQLALCHEMY_DB_URL
+from .models import Base
 
 
 class Singleton(type):

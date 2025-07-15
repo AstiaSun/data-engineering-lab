@@ -1,0 +1,24 @@
+services:
+  database:
+    image: mysql:9.3.0
+    restart: always
+    env_file: ".env"
+    volumes:
+      - ./db:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    expose:
+      - "3306"
+
+  data-loader:
+    env_file: ".env"
+    environment:
+      - DATASET_PATH=/data-engineering-lab/dataset
+      - MYSQL_HOST=database
+    build:
+      context: .
+    command: bash -c "poetry run alembic upgrade head && poetry run python -m src.data_loader"
+    volumes:
+      - ./dataset:/data-engineering-lab/dataset:ro
+    depends_on:
+      - database

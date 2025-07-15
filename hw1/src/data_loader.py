@@ -6,9 +6,9 @@ from pathlib import Path
 from typing import Generator, Type
 
 
-from constants import DATASET_PATH
-from hw1.src.db import DBSession
-from hw1.src.models import Base, Campaign, AdEvent, UserInterests, User
+from .constants import DATASET_PATH
+from .db import DBSession
+from .models import Base, Campaign, AdEvent, UserInterests, User
 
 CSV_NESTED_SEPARATOR = ";"
 CSV_SEPARATOR = ","

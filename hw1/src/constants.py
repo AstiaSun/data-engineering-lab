@@ -1,10 +1,11 @@
 import os
+from pathlib import Path
 
-DATASET_PATH = os.environ.get("DATASET_PATH")
+DATASET_PATH = Path(os.environ.get("DATASET_PATH"))
 
 MYSQL_DATABASE = os.environ.get("MYSQL_DATABASE")
 MYSQL_ROOT_PASSWORD = os.environ.get("MYSQL_ROOT_PASSWORD")
-MYSQL_HOST = os.environ.get("MYSQL_HOST")
+MYSQL_HOST = os.environ.get("MYSQL_HOST", "localhost")
 MYSQL_PORT = os.environ.get("MYSQL_PORT", "3306")
 SQLALCHEMY_DB_URL: str | None = None
 
