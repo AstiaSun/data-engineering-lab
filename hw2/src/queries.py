@@ -1,6 +1,6 @@
 from typing import Any
 
-from hw2.src.db import DBSession
+from .db import DBSession
 
 
 QUERY_CREATE_TEMP_AD_EVENTS_LATEST = """
