@@ -1,0 +1,36 @@
+services:
+  database:
+    restart: no
+    image: mysql:9.3.0
+    env_file: .env
+    volumes:
+      - ./db:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    expose:
+      - "3306"
+    healthcheck:
+      test: [ "CMD", "mysqladmin" ,"ping", "-h", "localhost" ]
+      timeout: 20s
+      retries: 10
+
+  database-dump-loader:
+    restart: no
+    image: mysql:9.3.0
+    env_file: .env
+    entrypoint: bash -c 'mysql -h database -u root --password=${MYSQL_ROOT_PASSWORD} ${MYSQL_DATABASE} < /adevents.sql'
+    volumes:
+      - ./adevents.sql:/adevents.sql
+    depends_on:
+      database:
+        condition: service_healthy
+
+  query-executor:
+    env_file: .env
+    environment:
+      - MYSQL_HOST=database
+    build: .
+    command: bash -c "poetry run python -m src.queries"
+    depends_on:
+      database:
+          condition: service_healthy

@@ -3,7 +3,7 @@ from typing import Self, Any
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 
-from hw2.src.constants import SQLALCHEMY_DB_URL
+from .constants import SQLALCHEMY_DB_URL
 
 
 class Singleton(type):

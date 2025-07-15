@@ -11,4 +11,4 @@ WORKDIR /data-engineering-lab
 COPY poetry.lock pyproject.toml ./
 RUN poetry install --no-root
 
-COPY hw2/src/*.py hw2/src/
+COPY src/ src/
