@@ -1,15 +1,11 @@
 from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pandas as pd
 
-from .db.collections import users, ad_events, campaigns
-from .db.queries import create_collection_from_stream
+from .db.client import get_db
+from .db.collections import AdEventCollection, UsersCollection, CampaignsCollection
 from ..constants import CHUNK_SIZE
-
-if TYPE_CHECKING:
-    from pymongo.collection import Collection
 
 
 CAMPAIGNS_COLUMNS = [
@@ -28,27 +24,33 @@ def stream_ad_events(csv_path: Path) -> Iterator[pd.DataFrame]:
         df_chunk["CampaignID"] = (
             df_chunk["CampaignName"].str.split("_").str[1].astype(int)
         )
+        df_chunk["Timestamp"] = pd.to_datetime(df_chunk["Timestamp"])
         df_chunk.drop(columns=CAMPAIGNS_COLUMNS, inplace=True)
         yield df_chunk
 
 
-def create_events_collection(csv_path: Path):
-    stream = stream_ad_events(csv_path)
-    create_collection_from_stream(stream=stream, collection=ad_events, index="EventID")
+def stream_campaigns(csv_path: Path) -> Iterator[pd.DataFrame]:
+    targeting_criteria_header = ("Age", "Category", "Country")
 
+    def _parse_targeting_criteria(line: str) -> dict[str, str]:
+        return dict(zip(targeting_criteria_header, line.split(", ")))
 
-def create_collection_from_csv(collection: "Collection", csv_path: Path, index: str):
-    stream = pd.read_csv(csv_path, chunksize=CHUNK_SIZE)
-    create_collection_from_stream(stream=stream, collection=collection, index=index)
+    for df_chunk in pd.read_csv(csv_path, chunksize=CHUNK_SIZE):
+        df_chunk["TargetingCriteria"] = df_chunk["TargetingCriteria"].apply(
+            _parse_targeting_criteria
+        )
+        yield df_chunk
 
 
 def load_dataset(dataset_path: Path):
-    create_collection_from_csv(
-        collection=users, csv_path=dataset_path / "users.csv", index="UserID"
-    )
-    create_collection_from_csv(
-        collection=campaigns,
-        csv_path=dataset_path / "campaigns.csv",
-        index="CampaignID",
-    )
-    create_events_collection(dataset_path / "ad_events.csv")
+    db = get_db()
+    print("Loading Users...")
+    stream = pd.read_csv(dataset_path / "users.csv", chunksize=CHUNK_SIZE)
+    UsersCollection(db).create_from_stream(stream)
+    print("Loading Campaigns...")
+    stream = stream_campaigns(dataset_path / "campaigns.csv")
+    CampaignsCollection(db).create_from_stream(stream)
+    print("Loading Events...")
+    stream = stream_ad_events(dataset_path / "ad_events.csv")
+    AdEventCollection(db).create_from_stream(stream)
+    print("Done!")
