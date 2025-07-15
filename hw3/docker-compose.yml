@@ -4,7 +4,7 @@
     image: mongo:8.0
     restart: always
     volumes:
-      - ./data:/data/db
+      - ./db:/data/db
     ports:
       - "27017:27017"
     expose:
@@ -18,10 +18,13 @@
 
   pipeline:
     env_file: ".env"
+    environment:
+      - MONGODB_HOST=mongodb
     build:
       context: .
     volumes:
       - ./dataset:/data-engineering-lab-hw3/dataset:ro
+      - ./reporter:/data-engineering-lab-hw3/reporter
     command: bash -c "poetry run python -m src.hw3.run"
     depends_on:
       mongodb:

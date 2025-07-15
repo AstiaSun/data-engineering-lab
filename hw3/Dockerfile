@@ -8,7 +8,8 @@ ENV POETRY_VERSION=2.0.0 \
 RUN pip install "poetry==$POETRY_VERSION"
 
 WORKDIR /data-engineering-lab-hw3
-COPY pyproject.toml poetry.lock ./
-COPY src/ src/
 
+COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-root
+
+COPY src/ src/
