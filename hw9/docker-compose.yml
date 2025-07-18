@@ -1,0 +1,16 @@
+networks:
+  hw8-tier:
+    name: hw8_hw8-tier
+    external: true
+
+services:
+  consumer:
+    build: .
+    networks:
+      - hw8-tier
+    volumes:
+      - ./.volumes/consumer:/data-engineering-lab/output
+    environment:
+      - KAFKA_HOST=kafka
+      - OUTPUT_PATH=output
+    command: bash -c "poetry run python -m src.hw9.main"
