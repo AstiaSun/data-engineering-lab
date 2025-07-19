@@ -1,51 +1,54 @@
 import csv
-import logging
-import random
 import socket
-import time
 from collections.abc import Iterator
 from pathlib import Path
 
-from confluent_kafka import Producer
+from pydantic import ValidationError
 
-from .models import ReviewMessage
+from .tweet_admin_client import TweetAdminClient
+from .tweet_producer import TweetProducer
+from .logging import setup_logging
+from .models import Tweet
 from ..constants import KAFKA_HOST, KAFKA_PORT, DATASET_PATH
 
-logger = logging.getLogger(__file__)
 
-config = {
+logger = setup_logging()
+
+KAFKA_CONFIG = {
     'bootstrap.servers': f"{KAFKA_HOST}:{KAFKA_PORT}",
     'client.id': socket.gethostname()
 }
 
-producer = Producer(config)
 
-
-def produce_reviews_from_file(csv_path: Path) -> Iterator[ReviewMessage]:
+def produce_tweets_from_file(csv_path: Path) -> Iterator[Tweet]:
     with csv_path.open() as file_stream:
         reader = csv.DictReader(file_stream)
-        for record in reader:
-            message = ReviewMessage(
-                customer_id=record["customer_id"],
-                review_id=record["review_id"],
-                message=record["review_body"]
-            )
-            yield message
+        for row_count, record in enumerate(reader, start=1):
+            try:
+                yield Tweet.model_validate(record)
+            except ValidationError as e:
+                logger.exception(e, extra={"row_count": row_count})
+                continue
 
 
-def send_messages_to_kafka(stream: Iterator[ReviewMessage], topic: str):
-    for message in stream:
-        try:
-            producer.produce(topic, message.model_dump_json().encode('utf-8'))
-            producer.flush()
-        except Exception as e:
-            logger.exception(e)
-        time.sleep(random.uniform(0.066, 0.1))
+def setup_kafka():
+    TweetAdminClient(config=KAFKA_CONFIG).create_topics()
+
+
+def produce_messages():
+    producer = TweetProducer(config=KAFKA_CONFIG)
+    producer.register_shutdown_signals()
+
+    review_stream = produce_tweets_from_file(DATASET_PATH)
+    producer.send_tweets_from_steam(stream=review_stream)
 
 
 def main():
-    review_stream = produce_reviews_from_file(DATASET_PATH)
-    send_messages_to_kafka(review_stream, "reviews")
+    try:
+        setup_kafka()
+        produce_messages()
+    except Exception as e:
+        logger.exception(e)
 
 
 if __name__ == "__main__":
