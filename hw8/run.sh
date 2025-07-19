@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker-compose build app
+docker-compose build producer
 
 docker-compose up -d kafka
-docker-compose up app
+docker-compose up producer

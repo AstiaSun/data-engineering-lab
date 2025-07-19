@@ -24,13 +24,14 @@ services:
       timeout: 60s
       retries: 60
 
-  app:
+  producer:
     build: .
     networks:
       - hw8-tier
     volumes:
       - ./dataset:/data-engineering-lab/dataset:ro
+      - ./.volumes/producer-logs:/data-engineering-lab/.logs/
+    env_file: producer.env
     environment:
       - KAFKA_HOST=kafka
-      - DATASET_PATH=./dataset
     command: bash -c "poetry run python -m src.hw8.main"
