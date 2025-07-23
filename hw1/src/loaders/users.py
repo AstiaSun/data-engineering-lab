@@ -1,6 +1,5 @@
 import csv
 from pathlib import Path
-from typing import ClassVar
 
 from tqdm import tqdm
 
@@ -10,8 +9,6 @@ from ..models import User, UserInterests
 
 
 class UserUploader(Uploader):
-    _MODEL: ClassVar[type[User]] = User
-
     def __init__(self, *, batch_size: int = DEFAULT_BATCH_SIZE):
         super().__init__(batch_size=batch_size)
         self._user_interests_batch: list[UserInterests] = []
@@ -24,10 +21,24 @@ class UserUploader(Uploader):
         return len(self._user_interests_batch) >= self._batch_size or len(self._batch) >= self._batch_size
 
     def _upload(self, source_path: Path):
+        """
+        Uploads data from CSV file to 3 databases: Users, Interests and UsersInterests (Users-Interests
+        many-to-many relation).
+        The data is inserted by chunks following the next algorithm:
+
+        1. Read the line from the file and parse it
+        2. Get interests IDs from DB
+        3. If not exist, insert value into Interests table
+        4. Add user record to the batch
+        5. Add user-interest record to the batch
+        6. If any batch is full, insert all batches to the DB
+
+        :param source_path: path to the CSV file with users data
+        """
         line_count = sum(1 for _ in source_path.open()) - 1
         with (
             source_path.open() as csv_file,
-            tqdm(mininterval=1, desc=f"Loading {self._MODEL.__table__}", total=line_count) as progress_bar
+            tqdm(mininterval=1, desc=f"Loading {source_path.name}", total=line_count) as progress_bar
         ):
             stream_reader = csv.reader(csv_file)
             header = next(stream_reader)

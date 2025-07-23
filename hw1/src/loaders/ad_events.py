@@ -2,7 +2,6 @@ import csv
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import ClassVar
 
 from tqdm import tqdm
 
@@ -12,12 +11,17 @@ from ..models import AdEvent
 
 
 class AdEventUploader(Uploader):
-    _MODEL: ClassVar[type[AdEvent]] = AdEvent
-
     def _upload(self, source_path: Path):
+        """
+        Uploads ad events data from the CSV file. Columns with campaign's and user's info are ignored,
+        corresponding CampaignID and UserID are specified instead.
+        Campaigns and Users should already be uploaded into the database.
+
+        :param source_path: path to the CSV file with ad events records
+        """
         line_count = sum(1 for _ in source_path.open()) - 1
 
-        filtered_columns_transformers = {
+        column_transformers = {
             "EventID": uuid.UUID,
             "Timestamp": datetime.fromisoformat,
             "BidAmount": float,
@@ -40,7 +44,7 @@ class AdEventUploader(Uploader):
         ]
         with (
             source_path.open() as csv_file,
-            tqdm(mininterval=1, desc=f"Loading {self._MODEL.__table__}", total=line_count) as progress_bar
+            tqdm(mininterval=1, desc=f"Loading {source_path.name}", total=line_count) as progress_bar
         ):
             stream_reader = csv.reader(csv_file)
             header = next(stream_reader)
@@ -54,7 +58,7 @@ class AdEventUploader(Uploader):
                 ad_event_values = [record[idx] for idx in filtered_columns_idx]
                 ad_event_values[-1] = ad_event_values[-1].removeprefix("Campaign_")
                 params = dict(zip(ad_event_header, ad_event_values))
-                for column, transform in filtered_columns_transformers.items():
+                for column, transform in column_transformers.items():
                     params[column] = transform(params[column])
                 self._batch.append(AdEvent(**params))
             self._db.insert_batch(self._batch)

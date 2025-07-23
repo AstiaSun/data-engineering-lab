@@ -11,7 +11,6 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import Inspector
 
 # revision identifiers, used by Alembic.
 revision: str = "98d697f6181a"
@@ -28,9 +27,6 @@ class Gender(Enum):
 
 def upgrade() -> None:
     """Upgrade schema."""
-    inspector = Inspector.from_engine(op.get_bind().engine)
-    if "Users" in inspector.get_table_names():
-        return
     op.create_table(
         "Locations",
         sa.Column("LocationID", sa.BigInteger, primary_key=True),

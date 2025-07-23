@@ -2,7 +2,6 @@ import csv
 import re
 import sys
 from pathlib import Path
-from typing import ClassVar
 
 from tqdm import tqdm
 
@@ -11,14 +10,26 @@ from ..models import Campaign
 
 
 class CampaignsUploader(Uploader):
-    _MODEL: ClassVar[type[Campaign]] = Campaign
-
     def _upload(self, source_path: Path):
+        """
+        Uploads data from CSV file into 3 databases: Campaigns, Locations and Interests.
+        The data is inserted by chunks following the next algorithm:
+
+        1. Read the line from the file and parse it
+        2. Get target location ID from DB
+        3. If not exist, insert value into Locations table
+        4. Get target interest ID from DB
+        5. If not exist, insert value into Interests table
+        6. Add campaign record to the batch
+        7. If the batch is full, insert it the DB
+
+        :param source_path: path to the CSV file with campaigns data
+        """
         age_regex = re.compile(r"Age (\d+)-(\d+)")
         line_count = sum(1 for _ in source_path.open()) - 1
         with (
             source_path.open() as csv_file,
-            tqdm(mininterval=1, desc=f"Loading {self._MODEL.__table__}", total=line_count, file=sys.stdout) as progress_bar
+            tqdm(mininterval=1, desc=f"Loading {source_path.name}", total=line_count, file=sys.stdout) as progress_bar
         ):
             stream_reader = csv.reader(csv_file)
             header = next(stream_reader)
