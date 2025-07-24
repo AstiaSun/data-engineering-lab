@@ -6,6 +6,8 @@ networks:
 services:
   redis:
     image: redis:8.0.3
+    ports:
+      - "6379:6379"
     networks:
       - hw5_tier
     healthcheck:
@@ -22,6 +24,7 @@ services:
     env_file: ".env"
     environment:
       - MONGODB_HOST=mongodb
+      - REDIS_HOST=redis
     command: bash -c "poetry run uvicorn src.hw5.main:app --host 0.0.0.0 --port 80"
     depends_on:
       redis:
