@@ -1,0 +1,15 @@
+[project]
+name = "hw6"
+version = "0.1.0"
+description = "Data Processing and Aggregation with Apache Spark and MongoDB"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pymongo (>=4.13.2,<5.0.0)",
+    "pyspark (==3.5.6)",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

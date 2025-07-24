@@ -1,0 +1,12 @@
+import os
+
+DATASET_PATH = "./dataset"
+DATABASE_NAME = "reviews"
+
+MONGODB_USERNAME = os.environ.get("MONGO_INITDB_ROOT_USERNAME")
+MONGODB_PASSWORD = os.environ.get("MONGO_INITDB_ROOT_PASSWORD")
+MONGODB_HOST = os.environ.get("MONGODB_HOST", "localhost")
+
+MONGODB_URI = (
+    f"mongodb://{MONGODB_USERNAME}:{MONGODB_PASSWORD}@{MONGODB_HOST}:27017/?authSource=admin"
+)
