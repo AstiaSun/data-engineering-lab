@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class AdEventCollection(BaseCollection):
-    COLLECTION_NAME: ClassVar[str] = "Events"
+    COLLECTION_NAME: ClassVar[str] = "events"
 
     def create_from_stream(self, stream: Iterator["pd.DataFrame"]):
         super().create_from_stream(stream=stream)

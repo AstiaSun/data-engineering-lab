@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 
 
 class CampaignsCollection(BaseCollection):
-    COLLECTION_NAME: ClassVar[str] = "Campaigns"
+    COLLECTION_NAME: ClassVar[str] = "campaigns"
 
     def create_from_stream(self, stream: Iterator["pd.DataFrame"]):
         super().create_from_stream(stream=stream)
