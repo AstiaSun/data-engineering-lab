@@ -1,0 +1,28 @@
+networks:
+  hw5_tier:
+    name: hw3_default
+    external: true
+
+services:
+  redis:
+    image: redis:8.0.3
+    networks:
+      - hw5_tier
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+
+  app:
+    build: .
+    networks:
+      - hw5_tier
+    ports:
+      - "8000:80"
+    expose:
+      - 80
+    env_file: ".env"
+    environment:
+      - MONGODB_HOST=mongodb
+    command: bash -c "poetry run uvicorn src.hw5.main:app --host 0.0.0.0 --port 80"
+    depends_on:
+      redis:
+        condition: service_healthy
