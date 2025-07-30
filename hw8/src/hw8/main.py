@@ -15,8 +15,8 @@ from ..constants import KAFKA_HOST, KAFKA_PORT, DATASET_PATH
 logger = setup_logging()
 
 KAFKA_CONFIG = {
-    'bootstrap.servers': f"{KAFKA_HOST}:{KAFKA_PORT}",
-    'client.id': socket.gethostname()
+    "bootstrap.servers": f"{KAFKA_HOST}:{KAFKA_PORT}",
+    "client.id": socket.gethostname(),
 }
 
 

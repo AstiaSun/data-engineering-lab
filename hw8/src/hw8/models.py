@@ -8,6 +8,7 @@ from typing_extensions import Annotated
 def _override_value_to_current_time(_: Any) -> datetime:
     return datetime.now(UTC)
 
+
 def _override_empty_str_with_null(value: Any) -> Any:
     if isinstance(value, str) and not value:
         return None
@@ -16,6 +17,7 @@ def _override_empty_str_with_null(value: Any) -> Any:
 
 OptionalTweetID = Annotated[int | None, BeforeValidator(_override_empty_str_with_null)]
 DatetimeNow = Annotated[datetime, BeforeValidator(_override_value_to_current_time)]
+
 
 class Tweet(BaseModel):
     tweet_id: int
@@ -34,5 +36,5 @@ class Tweet(BaseModel):
         if isinstance(value, str):
             if not value:
                 return []
-            return list(map(int, value.split(',')))
+            return list(map(int, value.split(",")))
         return value
