@@ -1,4 +1,4 @@
-FROM python:3.13.3
+FROM python:3.12.5
 
 # Install Java
 RUN apt-get update && apt-get install -y openjdk-17-jdk curl && \
@@ -21,5 +21,5 @@ RUN poetry install --no-root
 ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-arm64
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
-COPY logging.ini ./docker/run_pipeline.sh ./
+COPY logging.ini ./
 COPY src/ src/

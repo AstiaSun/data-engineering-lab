@@ -1,5 +1,5 @@
 networks:
-  hw10-tier:
+  wiki-streams-tier:
     driver: bridge
 
 services:
@@ -13,7 +13,7 @@ services:
     expose:
       - 8080
     networks:
-      - hw10-tier
+      - wiki-streams-tier
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
       interval: 5s
@@ -26,14 +26,18 @@ services:
       - SPARK_MODE=worker
       - SPARK_MASTER_URL=spark://spark:7077
     networks:
-      - hw10-tier
+      - wiki-streams-tier
+    ports:
+      - "8081:8081"
+    expose:
+      - 8081
     depends_on:
       - spark
 
   kafka:
     image: bitnami/kafka:4.0.0
     networks:
-      - hw10-tier
+      - wiki-streams-tier
     ports:
       - "9092:9092"
     expose:
@@ -55,7 +59,7 @@ services:
   cassandra:
     image: bitnami/cassandra:5.0.4
     networks:
-      - hw10-tier
+      - wiki-streams-tier
     ports:
       - "9042:9042"
     env_file: ".env"
@@ -86,8 +90,8 @@ services:
       - KAFKA_HOST=kafka
       - CASSANDRA_HOST=cassandra
     networks:
-      - hw10-tier
-    command: bash /data-engineering-lab/run_pipeline.sh
+      - wiki-streams-tier
+    command: bash -c 'poetry run python -m src.hw10.data_ingestion'
     depends_on:
       spark:
         condition: service_healthy
