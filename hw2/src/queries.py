@@ -136,6 +136,7 @@ FROM (
 )
 """
 
+
 def report(result: Any):
     if not result:
         print("empty")
@@ -143,21 +144,20 @@ def report(result: Any):
         header = "\t| ".join(result.keys())
         print(header)
         print("-" * len(header))
-        print("\n".join(
-            "\t| ".join(map(str, row)) for row in result)
-        )
+        print("\n".join("\t| ".join(map(str, row)) for row in result))
         print("-" * len(header) + "\n")
 
 
 QUERIES = {
-    "CAMPAIGN_PERFORMANCE" : QUERY_CAMPAIGN_PERFORMANCE,
-    "COST_EFFICIENCY" : QUERY_COST_EFFICIENCY,
-    "ADVERTISER_SPENDING" : QUERY_ADVERTISER_SPENDING,
-    "REGIONAL_ANALYSIS" : QUERY_REGIONAL_ANALYSIS,
+    "CAMPAIGN_PERFORMANCE": QUERY_CAMPAIGN_PERFORMANCE,
+    "COST_EFFICIENCY": QUERY_COST_EFFICIENCY,
+    "ADVERTISER_SPENDING": QUERY_ADVERTISER_SPENDING,
+    "REGIONAL_ANALYSIS": QUERY_REGIONAL_ANALYSIS,
     "USER_ENGAGEMENT": QUERY_USER_ENGAGEMENT,
     "BUDGET_CONSUMPTION": QUERY_BUDGET_CONSUMPTION,
     "DEVICE_PERFORMANCE_COMPARISON": QUERY_DEVICE_PERFORMANCE_COMPARISON,
 }
+
 
 def execute_queries():
     with DBSession() as db:
@@ -167,7 +167,6 @@ def execute_queries():
             result = db.execute(query)
             report(result)
         db.execute(QUERY_DROP_TEMP_AD_EVENTS_LATEST)
-
 
 
 if __name__ == "__main__":

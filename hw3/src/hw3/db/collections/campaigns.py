@@ -15,9 +15,13 @@ class CampaignsCollection(BaseCollection):
 
     def create_from_stream(self, stream: Iterator["pd.DataFrame"]):
         super().create_from_stream(stream=stream)
-        self.collection.create_index([("CampaignID", ASCENDING)], name="CampaignID", unique=True)
+        self.collection.create_index(
+            [("CampaignID", ASCENDING)], name="CampaignID", unique=True
+        )
 
-    def get_active_campaigns(self, advertiser_name: str, from_time: datetime) -> list[int]:
+    def get_active_campaigns(
+        self, advertiser_name: str, from_time: datetime
+    ) -> list[int]:
         campaign_filter = {
             "AdvertiserName": advertiser_name,
             "CampaignEndDate": {"$gte": from_time.isoformat()},

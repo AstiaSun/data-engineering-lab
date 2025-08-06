@@ -8,7 +8,9 @@ from .db import get_db
 from .reporter import CSVReporter
 
 
-def get_clicks_per_hour_per_campaign_for_advertiser(db, advertiser_name: str, time_now: datetime):
+def get_clicks_per_hour_per_campaign_for_advertiser(
+    db, advertiser_name: str, time_now: datetime
+):
     campaigns = CampaignsCollection(db)
     campaigns_ids = campaigns.get_active_campaigns(
         advertiser_name=advertiser_name,
@@ -37,7 +39,7 @@ def execute_queries():
     last_24h_cph = get_clicks_per_hour_per_campaign_for_advertiser(
         db=db,
         advertiser_name="Advertiser_1",
-        time_now=datetime.fromisoformat("2024-10-29")
+        time_now=datetime.fromisoformat("2024-10-29"),
     )
     reporter.report(last_24h_cph, file_name="3_clicks_per_campaign", index=[0])
     print(last_24h_cph)
