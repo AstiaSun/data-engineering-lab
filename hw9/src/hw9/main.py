@@ -10,13 +10,15 @@ KAFKA_CONFIG = {
     "bootstrap.servers": f"{KAFKA_HOST}:{KAFKA_PORT}",
     "group.id": "tweet-consumer-group",
     "auto.offset.reset": "earliest",
-    "enable.auto.commit": False
+    "enable.auto.commit": False,
 }
 
 
 def main():
     try:
-        consumer = TweetConsumer(config=KAFKA_CONFIG, storage_path=OUTPUT_PATH / "storage")
+        consumer = TweetConsumer(
+            config=KAFKA_CONFIG, storage_path=OUTPUT_PATH / "storage"
+        )
         consumer.consume_tweets()
     except Exception as e:
         logger.exception(e)

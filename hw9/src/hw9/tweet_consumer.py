@@ -8,12 +8,12 @@ from typing import Any
 from confluent_kafka import Consumer, Message
 
 from .exceptions import FailedMessageException
-from .models import Tweet, PartitionKey, TweetByKey
+from .models import Tweet, PartitionKey, TweetByKey, TweetExport
 
 logger = logging.getLogger(__name__)
 
 
-ENCODING = 'utf-8'
+ENCODING = "utf-8"
 
 
 def _try_decode_message(message: Message) -> TweetByKey:
@@ -46,24 +46,24 @@ def _decode_message(message: Message) -> TweetByKey | None:
 class TweetConsumer:
     def __init__(self, config: dict[str, Any], storage_path: Path):
         """
-
         :param config: Kafka Consumer config
         :param storage_path: path to directory, where messages should be stored
         """
         self._consumer = Consumer(config)
         self._storage_path = storage_path
 
-    def _export_tweets(self, tweets_by_key: dict[str, list[Tweet]]):
+    def _export_tweets(self, tweets_by_key: dict[str, list[TweetExport]]):
         """writes tweets to CSV files according to their key.
         Tweets with the same key will be written to the same file.
 
         """
+        exported_fields = TweetExport.model_fields.keys()
         for key, tweets in tweets_by_key.items():
             file_path = self._storage_path / f"tweet_{key}.csv"
             file_exists = file_path.exists()
 
             with file_path.open("a", newline="") as csv_file:
-                csv_writer = csv.DictWriter(csv_file, fieldnames=Tweet.model_fields.keys())
+                csv_writer = csv.DictWriter(csv_file, fieldnames=exported_fields)
                 if not file_exists:
                     csv_writer.writeheader()
                 for tweet in tweets:
@@ -83,7 +83,12 @@ class TweetConsumer:
             tweets_by_key = defaultdict(list)
             for message in messages:
                 if (tweet_by_key := _decode_message(message)) is not None:
-                    tweets_by_key[tweet_by_key.key].append(tweet_by_key.tweet)
+                    exported_tweet = TweetExport(
+                        author_id=tweet_by_key.tweet.author_id,
+                        created_at=tweet_by_key.tweet.created_at,
+                        text=tweet_by_key.tweet.text,
+                    )
+                    tweets_by_key[tweet_by_key.key].append(exported_tweet)
 
             if tweets_by_key:
                 self._export_tweets(tweets_by_key)
@@ -101,5 +106,3 @@ class TweetConsumer:
         finally:
             logger.info("Closing Kafka consumer...")
             self._consumer.close()
-
-

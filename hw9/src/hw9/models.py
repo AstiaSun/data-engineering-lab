@@ -21,6 +21,14 @@ class Tweet(BaseModel):
         return self.created_at.strftime(PARTITION_KEY_FORMAT)
 
 
+class TweetExport(BaseModel):
+    author_id: str
+    created_at: datetime
+    text: str
+
+    model_config = ConfigDict(frozen=True, extra="ignore")
+
+
 class PartitionKey(BaseModel):
     created_at: str
 

@@ -32,7 +32,6 @@ services:
     volumes:
       - ./dataset:/data-engineering-lab/dataset:ro
       - ./.volumes/producer-logs:/data-engineering-lab/.logs/
-    env_file: producer.env
     environment:
       - KAFKA_HOST=kafka
     command: bash -c "poetry run python -m src.hw8.main"
