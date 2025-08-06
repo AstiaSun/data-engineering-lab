@@ -22,13 +22,21 @@ class AdEventCollection(BaseCollection):
         # it's OK from my perspective to do it.
         self.collection.create_index("CampaignID")
         self.collection.create_index("UserID")
-        self.collection.create_index([("UserID", 1), ("CampaignID", 1), ("WasClicked", 1)])
+        self.collection.create_index(
+            [("UserID", 1), ("CampaignID", 1), ("WasClicked", 1)]
+        )
 
-    def get_interactions(self, user_id: int, *, limit: int = 100_000) -> list[dict[str, Any]]:
+    def get_interactions(
+        self, user_id: int, *, limit: int = 100_000
+    ) -> list[dict[str, Any]]:
         """retrieves all ad interactions for a specific user"""
-        return self.collection.find({"UserID": user_id}, {"_id": 0}).limit(limit).to_list()
+        return (
+            self.collection.find({"UserID": user_id}, {"_id": 0}).limit(limit).to_list()
+        )
 
-    def get_last_user_sessions(self, user_id: int, *, session_duration_minutes: int = 30, limit: int = 5) -> list:
+    def get_last_user_sessions(
+        self, user_id: int, *, session_duration_minutes: int = 30, limit: int = 5
+    ) -> list:
         """retrieves a user’s last 5 ad sessions with timestamps and click behavior.
 
         :param user_id: UserID
@@ -41,17 +49,26 @@ class AdEventCollection(BaseCollection):
             "$setWindowFields": {
                 "partitionBy": "$UserID",
                 "sortBy": {"Timestamp": 1},
-                "output": {"PrevTimestamp": {"$shift": {"output": "$Timestamp", "by": -1}}}
+                "output": {
+                    "PrevTimestamp": {"$shift": {"output": "$Timestamp", "by": -1}}
+                },
             }
         }
         calculate_time_gaps_stage = {
             "$addFields": {
                 "GapMinutes": {
-                    "$divide": [{"$subtract": ["$Timestamp", "$PrevTimestamp"]}, 1000 * 60]
+                    "$divide": [
+                        {"$subtract": ["$Timestamp", "$PrevTimestamp"]},
+                        1000 * 60,
+                    ]
                 }
             }
         }
-        determine_sessions_stage = {"$set": {"IsNewSession": {"$gte": ["$GapMinutes", session_duration_minutes]}}}
+        determine_sessions_stage = {
+            "$set": {
+                "IsNewSession": {"$gte": ["$GapMinutes", session_duration_minutes]}
+            }
+        }
         create_session_ids_stage = {
             "$setWindowFields": {
                 "partitionBy": "$UserID",
@@ -59,32 +76,34 @@ class AdEventCollection(BaseCollection):
                 "output": {
                     "SessionId": {
                         "$sum": {"$cond": ["$IsNewSession", 1, 0]},
-                        "window": {"documents": ["unbounded", "current"]}
+                        "window": {"documents": ["unbounded", "current"]},
                     }
-                }
+                },
             }
         }
         group_by_session_id_stage = {
             "$group": {
-              "_id": "$SessionId",
-              "SessionStart": {"$min": "$Timestamp"},
-              "SessionEnd": {"$max": "$Timestamp"},
-              "Clicked": {"$max": {"$cond": ["$WasClicked", 1, 0]}},
-              "Impressions": {"$sum": 1}
+                "_id": "$SessionId",
+                "SessionStart": {"$min": "$Timestamp"},
+                "SessionEnd": {"$max": "$Timestamp"},
+                "Clicked": {"$max": {"$cond": ["$WasClicked", 1, 0]}},
+                "Impressions": {"$sum": 1},
             }
         }
         sort_by_session_end_stage = {"$sort": {"SessionEnd": -1}}
-        return self.collection.aggregate([
-            match_user_stage,
-            sort_by_timestamp_stage,
-            shift_timestamp_stage,
-            calculate_time_gaps_stage,
-            determine_sessions_stage,
-            create_session_ids_stage,
-            group_by_session_id_stage,
-            sort_by_session_end_stage,
-            {"$limit": limit}
-        ]).to_list()
+        return self.collection.aggregate(
+            [
+                match_user_stage,
+                sort_by_timestamp_stage,
+                shift_timestamp_stage,
+                calculate_time_gaps_stage,
+                determine_sessions_stage,
+                create_session_ids_stage,
+                group_by_session_id_stage,
+                sort_by_session_end_stage,
+                {"$limit": limit},
+            ]
+        ).to_list()
 
     def get_clicks_per_hour_in_24h_for_campaign(
         self, campaign_id: int, to_time: datetime
@@ -105,7 +124,9 @@ class AdEventCollection(BaseCollection):
         )
         return round(total_clicks / 24, 3)
 
-    def get_clicks_per_hour_in_24h(self, campaigns_ids: list[int], to_time: datetime) -> dict[int, float]:
+    def get_clicks_per_hour_in_24h(
+        self, campaigns_ids: list[int], to_time: datetime
+    ) -> dict[int, float]:
         """calculates clicks per hour for a specific campaign during 24 hours"""
         return {
             campaign_id: self.get_clicks_per_hour_in_24h_for_campaign(
@@ -130,7 +151,12 @@ class AdEventCollection(BaseCollection):
         }
         match_users_stage = {"$match": {"Views": {"$gte": min_views}, "Clicked": 0}}
         group_by_users = {"$group": {"_id": "$_id.UserID"}}
-        pipeline = [sort_by_index_stage, group_by_user_and_ad_stage, match_users_stage, group_by_users]
+        pipeline = [
+            sort_by_index_stage,
+            group_by_user_and_ad_stage,
+            match_users_stage,
+            group_by_users,
+        ]
         result = self.collection.aggregate(pipeline, allowDiskUse=True)
         return [group["_id"] for group in result]
 
