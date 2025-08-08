@@ -1,0 +1,37 @@
+services:
+  cassandra:
+    image: bitnami/cassandra:5.0.4
+    ports:
+    - "9042:9042"
+    expose:
+      - 9042
+    env_file: ".env"
+    environment:
+    - CASSANDRA_SEEDS=cassandra
+    - CASSANDRA_CLUSTER_NAME=prod-cluster
+    - CASSANDRA_PASSWORD_SEEDER=yes
+    - CASSANDRA_NUM_TOKENS=256
+    - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+    - CASSANDRA_ENABLE_USER_DEFINED_FUNCTIONS=false
+    - JVM_EXTRA_OPTS=-Xms1G -Xmx2G -Dcassandra.consistent.rangemovement=false
+    volumes:
+    - .volumes/cassandra:/bitnami/cassandra
+    healthcheck:
+      test: [ "CMD", "cqlsh", "-u", "$CASSANDRA_USER", "-p", "$CASSANDRA_PASSWORD", "-e", "DESCRIBE KEYSPACES" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  pipeline:
+    env_file: ".env"
+    environment:
+      - CASSANDRA_HOST=cassandra
+    build:
+      context: .
+    volumes:
+      - ./dataset:/data-engineering-lab/dataset:ro
+    command: bash -c "poetry run python -m src.hw4.main"
+    depends_on:
+      cassandra:
+        condition: service_healthy
