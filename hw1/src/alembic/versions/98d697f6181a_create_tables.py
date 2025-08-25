@@ -11,7 +11,6 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import Inspector
 
 # revision identifiers, used by Alembic.
 revision: str = "98d697f6181a"
@@ -28,15 +27,23 @@ class Gender(Enum):
 
 def upgrade() -> None:
     """Upgrade schema."""
-    inspector = Inspector.from_engine(op.get_bind().engine)
-    if "Users" in inspector.get_table_names():
-        return
+    op.create_table(
+        "Locations",
+        sa.Column("LocationID", sa.BigInteger, primary_key=True),
+        sa.Column("Country", sa.String(50), nullable=False, unique=True)
+    )
+    op.create_table(
+        "Interests",
+        sa.Column("InterestID", sa.BigInteger, primary_key=True),
+            sa.Column("Field", sa.String(20), nullable=False, unique=True),
+    )
     op.create_table(
         "Users",
         sa.Column("UserID", sa.BigInteger, primary_key=True),
         sa.Column("Age", sa.Integer, nullable=False),
         sa.Column("Gender", sa.Enum(Gender), nullable=False),
-        sa.Column("Location", sa.String(30), nullable=False),
+        sa.Column("LocationID", sa.BigInteger, sa.ForeignKey("Locations.LocationID", ondelete="CASCADE")),
+        sa.Column("SignupDate", sa.Date),
     )
     op.create_table(
         "UsersInterests",
@@ -47,7 +54,13 @@ def upgrade() -> None:
             primary_key=True,
             nullable=False,
         ),
-        sa.Column("Interest", sa.String(20), primary_key=True, nullable=False),
+        sa.Column(
+            "InterestID",
+            sa.BigInteger,
+            sa.ForeignKey("Interests.InterestID", ondelete="CASCADE"),
+            primary_key=True,
+            nullable=False,
+        ),
     )
     op.create_table(
         "Campaigns",
@@ -61,8 +74,8 @@ def upgrade() -> None:
         sa.Column("RemainingBudget", sa.Float, nullable=False),
         sa.Column("TargetAgeMin", sa.Integer, nullable=False),
         sa.Column("TargetAgeMax", sa.Integer, nullable=False),
-        sa.Column("TargetInterest", sa.String(15), nullable=False),
-        sa.Column("TargetLocation", sa.String(50), nullable=False),
+        sa.Column("TargetInterestID", sa.BigInteger, sa.ForeignKey("Interests.InterestID", ondelete="CASCADE"), nullable=False),
+        sa.Column("TargetLocationID", sa.BigInteger, sa.ForeignKey("Locations.LocationID", ondelete="CASCADE"), nullable=False),
     )
 
     op.create_table(
@@ -88,7 +101,10 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
+    op.drop_table("AdEvents")
+    op.drop_table("Campaigns")
     op.drop_table("UsersInterests")
     op.drop_table("Users")
-    op.drop_table("Campaigns")
-    op.drop_table("AdEvents")
+    op.drop_table("Interests")
+    op.drop_table("Locations")
+
