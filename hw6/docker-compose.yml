@@ -1,0 +1,71 @@
+networks:
+  amazon-reviews-tier:
+    driver: bridge
+
+services:
+  spark:
+    image: bitnami/spark:3.5.5
+    environment:
+      - SPARK_MODE=master
+    volumes:
+      - ./volumes/spark-backups:/bitnami/spark
+      - ./dataset:/data-engineering-lab/dataset:ro
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    expose:
+      - 8080
+    networks:
+      - amazon-reviews-tier
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080" ]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+  
+  spark-worker:
+    image: bitnami/spark:3.5.5
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark:7077
+    volumes:
+      - ./volumes/spark-backups:/bitnami/spark
+      - ./dataset:/data-engineering-lab/dataset:ro
+    networks:
+      - amazon-reviews-tier
+    depends_on: 
+      - spark
+
+  mongodb:
+    env_file: ".env"
+    image: mongo:8.0.0
+    restart: always
+    volumes:
+      - ./volumes/db:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - amazon-reviews-tier
+    healthcheck:
+      test: [ "CMD","mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  pipeline:
+    env_file: ".env"
+    environment:
+      - MONGODB_HOST=mongodb
+      - SPARK_MASTER_HOST=spark
+      - SPARK_MONGO_CONNECTOR=org.mongodb.spark:mongo-spark-connector_2.12:10.5.0
+    build:
+      context: .
+    volumes:
+      - ./dataset:/data-engineering-lab/dataset:ro
+    networks:
+      - amazon-reviews-tier
+    command: bash -c "poetry run python -m src.hw6.main"
+    depends_on:
+      mongodb:
+        condition: service_healthy
