@@ -11,7 +11,7 @@ class AdCampaignPerformance(Model):
     __table_name__ = "ad_campaign_performance"
 
     campaign_name = columns.Text(min_length=10, max_length=16, partition_key=True)
-    month_bucket = columns.Text(min_length=7, max_length=7, partition_key=True)
+    month_partition = columns.Text(min_length=7, max_length=7, partition_key=True)
     day = columns.Date(primary_key=True)
     total_clicks = columns.Counter()
     total_impressions = columns.Counter()
@@ -23,13 +23,23 @@ class UserImpressions(Model):
     __keyspace__ = CASSANDRA_KEYSPACE
     __table_name__ = "user_impressions"
 
-    user_id = columns.Integer(primary_key=True, partition_key=True)
-    month_bucket = columns.Text(min_length=7, max_length=7, partition_key=True)
+    user_id = columns.Integer(partition_key=True)
 
     event_id = columns.UUID(primary_key=True)
-    event_ts = columns.DateTime()
+    event_ts = columns.DateTime(clustering_order="DESC", primary_key=True)
+    month = columns.Text(min_length=7, max_length=7)
     campaign_name = columns.Text(min_length=10, max_length=16)
     is_clicked = columns.Boolean()
+
+
+class UserClicks(Model):
+    """Used to aggregate monthly user clicks"""
+
+    __keyspace__ = CASSANDRA_KEYSPACE
+    __table_name__ = "user_clicks"
+
+    month_partition = columns.Text(min_length=7, max_length=7, partition_key=True)
+    user_id = columns.Integer(primary_key=True)
 
 
 class AdvertiserSpending(Model):
@@ -38,14 +48,9 @@ class AdvertiserSpending(Model):
     __keyspace__ = CASSANDRA_KEYSPACE
     __table_name__ = "advertiser_spending"
 
-    advertiser_name = columns.Text(
-        min_length=12, max_length=16, primary_key=True, partition_key=True
-    )
-    campaign_name = columns.Text(min_length=10, max_length=16, partition_key=True)
-    month_bucket = columns.Text(min_length=7, max_length=7, partition_key=True)
-
-    event_ts = columns.DateTime(primary_key=True, clustering_order="DESC")
-    event_id = columns.UUID()
+    day_partition = columns.Date(partition_key=True)
+    event_ts = columns.DateTime(primary_key=True)
+    advertiser_name = columns.Text(min_length=12, max_length=16)
     region = columns.Text(min_length=2, max_length=30)
     ad_cost = columns.Float()
 
