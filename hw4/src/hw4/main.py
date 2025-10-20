@@ -2,7 +2,7 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
-from .constants import MONTH_BUCKET_FORMAT
+from .constants import MONTH_PARTITION_FORMAT
 
 
 def ingest_dataset(args):
@@ -18,7 +18,7 @@ def update_tables(args):
 
 
 def _varified_month_type(value: str):
-    datetime.strptime(value, MONTH_BUCKET_FORMAT)
+    datetime.strptime(value, MONTH_PARTITION_FORMAT)
     return value
 
 
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         "ingest", help="Upload ad events from CSV files to DB"
     )
     ingestion_group.add_argument(
-        "-p",
+        "-d",
         "--dataset_path",
         type=Path,
         help="Path to the directory with CSV files",

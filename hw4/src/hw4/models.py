@@ -13,6 +13,7 @@ def skip_empty_string(value: Any) -> Any | None:
 
 class AdEventRecord(BaseModel):
     """represents a row in the CSV file with ad events"""
+
     event_id: uuid.UUID = Field(validation_alias="EventID")
     advertiser_name: str = Field(validation_alias="AdvertiserName")
     campaign_name: str = Field(validation_alias="CampaignName")

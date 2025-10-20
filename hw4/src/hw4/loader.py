@@ -2,10 +2,10 @@ import dataclasses
 import logging
 from typing import Any
 
-from cassandra.cluster import Session
 from cassandra.concurrent import execute_concurrent_with_args
 
 from .constants import CASSANDRA_CONCURRENT_REQUESTS
+from .db.db import session
 from .db.queries import QueryHandler
 from .models import AdEventRecord
 
@@ -20,15 +20,16 @@ class LoaderStats:
 
 class AdEventsLoader:
     """AdEventsLoader is responsible ingesting records to Cassandra DB"""
-    def __init__(self, session: Session, statements: list[QueryHandler]):
+
+    def __init__(self, statements: list[QueryHandler]):
         """
-        :param session: Cassandra DB session
         :param statements: list of handlers, which extracts and transforms needed data
             from a single row for a specific table in DB
         """
-        self._session = session
         self._statements = statements
-        self._statement_params: list[list[Any]] = [[]] * len(self._statements)
+        self._statement_params: list[list[Any]] = [
+            [] for _ in range(len(self._statements))
+        ]
         self._stats = LoaderStats()
 
     @property
@@ -40,15 +41,13 @@ class AdEventsLoader:
         return self._stats.fail_count
 
     @property
-    def batch_size(self) -> int:
+    def batch_sizes(self) -> list[int]:
         """
-        return the length of the biggest array of collected parameters.
-        Each statement is considered to be executed separately, so we count each
-        corresponding array of parameters as a separate batch.
+        return number of collected parameters for each statement
         """
-        return max(len(params) for params in self._statement_params)
+        return [len(params) for params in self._statement_params]
 
-    def save_statement_params(self, ad_event: AdEventRecord):
+    def add_statement_params(self, ad_event: AdEventRecord):
         """extracts needed data for each table (parameters) from a record and add them to batches"""
         for stmt_position, stmt_obj in enumerate(self._statements):
             bound_params = stmt_obj.bind_from_event(ad_event)
@@ -58,18 +57,21 @@ class AdEventsLoader:
 
     def execute_statements(self):
         """stores collected data in the database and clears batches"""
-        for statement, stmt_params in zip(self._statements, self._statement_params):
-            results = execute_concurrent_with_args(
-                self._session,
-                statement.statement,
-                stmt_params,
-                concurrency=CASSANDRA_CONCURRENT_REQUESTS,
-            )
+        for statement_id in range(len(self._statements)):
+            self.execute_statement(statement_id)
 
-            for success, result in results:
-                if not success:
-                    self._stats.fail_count += 1
-                    logger.exception(result)
-                else:
-                    self._stats.success_count += 1
-        self._statement_params = [[]] * len(self._statements)
+    def execute_statement(self, statement_id: int):
+        results = execute_concurrent_with_args(
+            session,
+            self._statements[statement_id].statement,
+            self._statement_params[statement_id],
+            concurrency=CASSANDRA_CONCURRENT_REQUESTS,
+        )
+
+        for success, result in results:
+            if not success:
+                self._stats.fail_count += 1
+                logger.exception(result)
+            else:
+                self._stats.success_count += 1
+        self._statement_params[statement_id] = []
