@@ -13,4 +13,5 @@ done
 docker-compose cp ./cql/setup.cql cassandra:/tmp/setup.cql
 docker-compose exec cassandra bash -c 'cqlsh -u $CASSANDRA_USER -p $CASSANDRA_PASSWORD -f /tmp/setup.cql'
 
-docker-compose up pipeline
+docker-compose run --remove-orphans pipeline
+docker-compose down

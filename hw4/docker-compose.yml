@@ -7,31 +7,58 @@ services:
       - 9042
     env_file: ".env"
     environment:
+    - CASSANDRA_CLUSTER_NAME=AdEventsCluster
     - CASSANDRA_SEEDS=cassandra
-    - CASSANDRA_CLUSTER_NAME=prod-cluster
+    - CASSANDRA_DC=local
+    - CASSANDRA_RACK=local-a
     - CASSANDRA_PASSWORD_SEEDER=yes
     - CASSANDRA_NUM_TOKENS=256
     - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
     - CASSANDRA_ENABLE_USER_DEFINED_FUNCTIONS=false
-    - JVM_EXTRA_OPTS=-Xms1G -Xmx2G -Dcassandra.consistent.rangemovement=false
+    - CASSANDRA_BROADCAST_ADDRESS=cassandra
+    - JVM_EXTRA_OPTS=-Xms1G -Xmx10G -Dcassandra.consistent.rangemovement=false
     volumes:
-    - .volumes/cassandra:/bitnami/cassandra
+      - ./.volumes/cassandra-seed:/bitnami/cassandra
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    networks:
+      - hw4-tier
     healthcheck:
       test: [ "CMD", "cqlsh", "-u", "$CASSANDRA_USER", "-p", "$CASSANDRA_PASSWORD", "-e", "DESCRIBE KEYSPACES" ]
       interval: 30s
       timeout: 10s
       retries: 5
       start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: "4"
+          memory: 11G
 
   pipeline:
     env_file: ".env"
     environment:
       - CASSANDRA_HOST=cassandra
-    build:
-      context: .
+      - CQLENG_ALLOW_SCHEMA_MANAGEMENT=1
+    build: .
+    stdin_open: true
+    tty: true
+    networks:
+      - hw4-tier
     volumes:
       - ./dataset:/data-engineering-lab/dataset:ro
-    command: bash -c "poetry run python -m src.hw4.main"
+    command: bash -c "poetry run python -m src.hw4.main update 2024-10"
     depends_on:
       cassandra:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+
+networks:
+  hw4-tier:
+    driver: bridge

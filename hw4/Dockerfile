@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y \
     libev-dev \
     && rm -rf /var/lib/apt/lists/*
 
-
 ENV POETRY_VERSION=2.0.0 \
     PYTHONUNBUFFERED=1 \
     POETRY_VIRTUALENVS_CREATE=false \
@@ -20,3 +19,4 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry install --no-root
 
 COPY src/ src/
+COPY logging.ini logging.ini
