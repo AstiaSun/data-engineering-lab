@@ -10,9 +10,8 @@ class AdCampaignPerformance(Model):
     __keyspace__ = CASSANDRA_KEYSPACE
     __table_name__ = "ad_campaign_performance"
 
-    campaign_name = columns.Text(
-        min_length=10, max_length=16, primary_key=True, partition_key=True
-    )
+    campaign_name = columns.Text(min_length=10, max_length=16, partition_key=True)
+    month_bucket = columns.Text(min_length=7, max_length=7, partition_key=True)
     day = columns.Date(primary_key=True)
     total_clicks = columns.Counter()
     total_impressions = columns.Counter()
@@ -25,6 +24,8 @@ class UserImpressions(Model):
     __table_name__ = "user_impressions"
 
     user_id = columns.Integer(primary_key=True, partition_key=True)
+    month_bucket = columns.Text(min_length=7, max_length=7, partition_key=True)
+
     event_id = columns.UUID(primary_key=True)
     event_ts = columns.DateTime()
     campaign_name = columns.Text(min_length=10, max_length=16)
@@ -37,9 +38,14 @@ class AdvertiserSpending(Model):
     __keyspace__ = CASSANDRA_KEYSPACE
     __table_name__ = "advertiser_spending"
 
-    advertiser_name = columns.Text(min_length=12, max_length=16, partition_key=True)
-    event_id = columns.UUID(primary_key=True)
-    event_ts = columns.DateTime()
+    advertiser_name = columns.Text(
+        min_length=12, max_length=16, primary_key=True, partition_key=True
+    )
+    campaign_name = columns.Text(min_length=10, max_length=16, partition_key=True)
+    month_bucket = columns.Text(min_length=7, max_length=7, partition_key=True)
+
+    event_ts = columns.DateTime(primary_key=True, clustering_order="DESC")
+    event_id = columns.UUID()
     region = columns.Text(min_length=2, max_length=30)
     ad_cost = columns.Float()
 
@@ -50,9 +56,9 @@ class MonthlyAdvertiserSpending(Model):
     __keyspace__ = CASSANDRA_KEYSPACE
     __table_name__ = "monthly_advertiser_spending"
 
-    period_start = columns.Date(primary_key=True)
+    month = columns.Text(min_length=7, max_length=7, partition_key=True)
     rank = columns.Integer(primary_key=True)
-    advertiser_name = columns.Text(min_length=12, max_length=16)
+    advertiser_name = columns.Text(primary_key=True, min_length=12, max_length=16)
     total_spending = columns.Float()
 
 
@@ -62,7 +68,7 @@ class MonthlyUserClicks(Model):
     __keyspace__ = CASSANDRA_KEYSPACE
     __table_name__ = "monthly_user_clicks"
 
-    period_start = columns.Date(primary_key=True)
+    month = columns.Text(min_length=7, max_length=7, partition_key=True)
     rank = columns.Integer(primary_key=True)
     user_id = columns.Integer()
     clicks = columns.Integer()
@@ -75,7 +81,7 @@ class MonthlyAdvertiserSpendingByRegion(Model):
     __table_name__ = "monthly_advertiser_spending_by_region"
 
     region = columns.Text(min_length=2, max_length=30, partition_key=True)
-    period_start = columns.Date(primary_key=True)
+    month = columns.Text(min_length=7, max_length=7, partition_key=True)
     rank = columns.Integer(primary_key=True)
     advertiser_name = columns.Text(min_length=12, max_length=16)
     total_spending = columns.Float()

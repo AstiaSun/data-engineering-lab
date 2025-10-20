@@ -1,5 +1,4 @@
 import os
-from pathlib import Path
 
 CASSANDRA_HOST = os.environ.get("CASSANDRA_HOST", "127.0.0.1")
 CASSANDRA_USER = os.environ.get("CASSANDRA_USER")
@@ -7,4 +6,7 @@ CASSANDRA_PASSWORD = os.environ.get("CASSANDRA_PASSWORD")
 
 CASSANDRA_KEYSPACE = "ad_events"
 
-DATASET_PATH = Path.cwd() / "dataset"
+CASSANDRA_CONCURRENT_REQUESTS = 64
+MAX_BATCH_SIZE = CASSANDRA_CONCURRENT_REQUESTS * 20
+
+MONTH_BUCKET_FORMAT = "%Y-%m"
