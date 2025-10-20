@@ -1,14 +1,15 @@
 import dataclasses
 import logging
-from collections import deque
+from typing import Any
 
 from cassandra.cluster import Session
+from cassandra.concurrent import execute_concurrent_with_args
 
-from .configs import LoaderConfig
+from .constants import CASSANDRA_CONCURRENT_REQUESTS
 from .db.queries import QueryHandler
 from .models import AdEventRecord
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger("pipeline")
 
 
 @dataclasses.dataclass
@@ -18,17 +19,16 @@ class LoaderStats:
 
 
 class AdEventsLoader:
-    def __init__(
-        self,
-        session: Session,
-        statements: list[QueryHandler],
-        *,
-        config: LoaderConfig | None = None,
-    ):
+    """AdEventsLoader is responsible ingesting records to Cassandra DB"""
+    def __init__(self, session: Session, statements: list[QueryHandler]):
+        """
+        :param session: Cassandra DB session
+        :param statements: list of handlers, which extracts and transforms needed data
+            from a single row for a specific table in DB
+        """
         self._session = session
-        self._config = config or LoaderConfig()
         self._statements = statements
-        self._in_flight = deque()
+        self._statement_params: list[list[Any]] = [[]] * len(self._statements)
         self._stats = LoaderStats()
 
     @property
@@ -39,28 +39,37 @@ class AdEventsLoader:
     def fail_count(self) -> int:
         return self._stats.fail_count
 
-    def _wait_for_slot(self):
-        while len(self._in_flight) >= self._config.max_in_flight:
-            self._complete_one()
+    @property
+    def batch_size(self) -> int:
+        """
+        return the length of the biggest array of collected parameters.
+        Each statement is considered to be executed separately, so we count each
+        corresponding array of parameters as a separate batch.
+        """
+        return max(len(params) for params in self._statement_params)
 
-    def _complete_one(self):
-        future = self._in_flight.popleft()
-        try:
-            future.result()
-            self._stats.success_count += 1
-        except Exception:
-            self._stats.fail_count += 1
-            logger.exception("Insert failed:")
-
-    def insert_async(self, ad_event: AdEventRecord):
-        for stmt_obj in self._statements:
-            self._wait_for_slot()
+    def save_statement_params(self, ad_event: AdEventRecord):
+        """extracts needed data for each table (parameters) from a record and add them to batches"""
+        for stmt_position, stmt_obj in enumerate(self._statements):
             bound_params = stmt_obj.bind_from_event(ad_event)
             if bound_params is None:
                 continue
-            future = self._session.execute_async(stmt_obj.statement, bound_params)
-            self._in_flight.append(future)
+            self._statement_params[stmt_position].append(bound_params)
 
-    def flush(self):
-        while self._in_flight:
-            self._complete_one()
+    def execute_statements(self):
+        """stores collected data in the database and clears batches"""
+        for statement, stmt_params in zip(self._statements, self._statement_params):
+            results = execute_concurrent_with_args(
+                self._session,
+                statement.statement,
+                stmt_params,
+                concurrency=CASSANDRA_CONCURRENT_REQUESTS,
+            )
+
+            for success, result in results:
+                if not success:
+                    self._stats.fail_count += 1
+                    logger.exception(result)
+                else:
+                    self._stats.success_count += 1
+        self._statement_params = [[]] * len(self._statements)
