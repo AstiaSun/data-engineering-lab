@@ -18,7 +18,7 @@ services:
     - CASSANDRA_BROADCAST_ADDRESS=cassandra
     - JVM_EXTRA_OPTS=-Xms1G -Xmx10G -Dcassandra.consistent.rangemovement=false
     volumes:
-      - ./.volumes/cassandra-seed:/bitnami/cassandra
+      - ./.volumes/cassandra:/bitnami/cassandra
     ulimits:
       nofile:
         soft: 65536

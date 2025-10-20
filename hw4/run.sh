@@ -1,4 +1,7 @@
 #!/bin/bash
+set -e
+
+rm -rf ./.volumes
 
 docker-compose build pipeline
 docker-compose up -d cassandra
@@ -13,7 +16,10 @@ done
 docker-compose cp ./cql/setup.cql cassandra:/tmp/setup.cql
 docker-compose exec cassandra bash -c 'cqlsh -u $CASSANDRA_USER -p $CASSANDRA_PASSWORD -f /tmp/setup.cql'
 
-docker-compose run --remove-orphans pipeline bash -c "poetry run python -m src.hw4.main ingest -d /data-engineering-lab/dataset"
-docker-compose run --remove-orphans pipeline bash -c "poetry run python -m src.hw4.main update 2024-10"
+docker-compose run pipeline bash -c "poetry run python -m src.hw4.main ingest -d /data-engineering-lab/dataset"
+
+current_month="2024-12"   # the last month in the dataset
+docker-compose run pipeline bash -c "poetry run python -m src.hw4.main update ${current_month}"
+docker-compose run pipeline bash -c "poetry run python -m src.hw4.main test_queries --user_id=541198 --month=${current_month} --region=Australia"
 
 docker-compose down

@@ -7,20 +7,23 @@
     $ chmod +x run.sh && ./run.sh
     ```
 
+### Results
+
+1. Cassandra schema design is described in [models.py](src/hw4/db/models.py). 
+2. CQL queries to answer key business questions are implemented in [queries.cql](cql/queries.cql).
+3. Screenshots with queries results are located in [screenshots](screenshots) directory.
+
+
 ### Comments
 Cassandra needs about 1-2 minutes to become healthy.
 
-Data ingestion is taking quite a long time for Ad Events dataset (about 1 hour on Apple M3 16G RAM).
+Data ingestion is taking quite a long time for Ad Events dataset (about 30 min on Apple M3 16G RAM).
 Minimal requirements for a successful ingestion of the whole dataset is 12 GB of free RAM.
 The User may need to additionally manually increase memory limit for docker. If the execution is failing 
 in the middle because of resources, this may be a possible cause.
 Due to limited resources, node replication is not enabled (replication factor=1), so some warnings are possible because of that. 
 
-Note, there's no queries that provide the results of data ingestion. 
-Please, connect to the cassandra docker and query respective table contents. Example:
-
+You can connect to cassandra cql by running the following command:
 ```
-$ docker compose exec -it cassandra bash 'cqlsh -u $CASSANDRA_USER -p $CASSANDRA_PASSWORD'
-cql> select * from ad_events.ad_campaign_performance limit 10;
-cql> select * from ad_events.monthly_advertiser_spending where month = '2024-10' limit 10;
+$ docker compose exec -it cassandra bash -c 'cqlsh -u $CASSANDRA_USER -p $CASSANDRA_PASSWORD'
 ```
