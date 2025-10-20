@@ -1,8 +1,8 @@
 import uuid
 from datetime import datetime
-from typing_extensions import Any, Annotated
 
-from pydantic import BaseModel, Field, BeforeValidator
+from pydantic import BaseModel, BeforeValidator, Field
+from typing_extensions import Annotated, Any
 
 
 def skip_empty_string(value: Any) -> Any | None:
@@ -12,6 +12,7 @@ def skip_empty_string(value: Any) -> Any | None:
 
 
 class AdEventRecord(BaseModel):
+    """represents a row in the CSV file with ad events"""
     event_id: uuid.UUID = Field(validation_alias="EventID")
     advertiser_name: str = Field(validation_alias="AdvertiserName")
     campaign_name: str = Field(validation_alias="CampaignName")
