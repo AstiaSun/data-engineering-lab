@@ -49,7 +49,6 @@ services:
       - hw4-tier
     volumes:
       - ./dataset:/data-engineering-lab/dataset:ro
-    command: bash -c "poetry run python -m src.hw4.main update 2024-10"
     depends_on:
       cassandra:
         condition: service_healthy
