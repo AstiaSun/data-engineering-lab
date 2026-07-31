@@ -35,7 +35,7 @@ services:
       - spark
 
   kafka:
-    image: bitnami/kafka:4.0.0
+    image: soldevelo/kafka:4.0.0
     networks:
       - wiki-streams-tier
     ports:
